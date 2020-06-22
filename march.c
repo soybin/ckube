@@ -5,7 +5,6 @@
 
 #include <ncurses.h>
 #include <time.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
@@ -13,17 +12,18 @@
 
 /*-------- c o n s t s --------*/
 
-const unsigned short SCALING_FACTOR = 1; /* exp */
+const unsigned short Y_SCALING_FACTOR = 2;
 const unsigned short MAX_DIST = 64;
 const unsigned short MAX_STEP = 16;
-const unsigned short FPS = 60;
-const unsigned short FOV = 45;
+const unsigned short FPS = 1;
+const unsigned short FOV = 60;
 const float MIN_DIST = 1e-3;
 
 /*-------- g l o b a l    v a r s --------*/
 
 unsigned int cols;
 unsigned int rows;
+unsigned int keypress;
 unsigned long long frame_count;
 
 /*-------- m a t h --------*/
@@ -32,6 +32,7 @@ unsigned long long frame_count;
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#define ABS(x) ((x)<0 ? -(x) : (x))
 
 typedef struct _int3 {
 	int x;
@@ -81,6 +82,7 @@ float3 float3_multf(float3 l, float r) {
 
 float3 float3_div(float3 l, float3 r) {
 	float3 ret = { l.x / r.x, l.y / r.y, l.z / r.z };
+	return ret;
 }
 
 float3 float3_divf(float3 l, float r) {
@@ -111,7 +113,8 @@ float3 float3_mod(float3 l, float3 r) {
 }
 
 float3 float3_abs(float3 v) {
-	float3 ret = { abs(v.x), abs(v.y), abs(v.z) };
+	float3 ret = { ABS(v.x), ABS(v.y), ABS(v.z) };
+	return ret;
 }
 
 float3 float3_min(float3 l, float3 r) {
@@ -124,6 +127,11 @@ float3 float3_max(float3 l, float3 r) {
 	return ret;
 }
 
+float3 float3_maxf(float3 l, float r) {
+	float3 ret = { MAX(l.x, r), MAX(l.y, r), MAX(l.z, r) };
+	return ret;
+}
+
 /*-------- r a y m a r c h i n g --------*/
 
 float sphere_de(float3 point, float size) {
@@ -132,23 +140,23 @@ float sphere_de(float3 point, float size) {
 	return float3_length(point) - size;
 }
 
-float box_de(float3 point) {
-	float3 a = float3_subf(float3_abs(point), 1.0f);
-	return float3_length(float3_max(a, (float3){ 0.0f, 0.0f, 0.0f })) + MIN(MAX(a.x, MAX(a.y, a.z)), 0.0f);
+float box_de(float3 point, float3 size) {
+	float3 a = float3_sub(float3_abs(point), size);
+	return float3_length(float3_maxf(a, 0.0f)) + MIN(MAX(a.x, MAX(a.y, a.z)), 0.0f);
 }
 
 /*-------- a p p l i c a t i o n --------*/
 
 void update_ray_direction(float3** direction_matrix) {
 	free(*direction_matrix);
-	*direction_matrix = (float3*)malloc(rows * SCALING_FACTOR * cols * SCALING_FACTOR * sizeof(float3));
+	*direction_matrix = (float3*)malloc(rows * cols * sizeof(float3));
 	/* fill up */
-	for (int r = 0; r < rows * SCALING_FACTOR; ++r) {
-		for (int c = 0; c < cols * SCALING_FACTOR; ++c) {
+	for (int r = 0; r < rows; ++r) {
+		for (int c = 0; c < cols; ++c) {
 			float3 dir;
-			dir.y = (float)r + 0.5f - rows * SCALING_FACTOR / 2.0f;
-			dir.x = (float)c + 0.5f - cols * SCALING_FACTOR / 2.0f;
-			dir.z = -(float)rows * SCALING_FACTOR / tan(FOV * M_PI / 180.0f / 2.0f);
+			dir.y = (float)r * Y_SCALING_FACTOR + 0.5f - rows * Y_SCALING_FACTOR / 2.0f;
+			dir.x = (float)c + 0.5f - cols / 2.0f;
+			dir.z = -(float)rows / tan(FOV * M_PI / 180.0f / 2.0f);
 			dir = float3_normalize(dir);
 			*(*direction_matrix + r * cols + c) = dir;
 		}
@@ -156,10 +164,13 @@ void update_ray_direction(float3** direction_matrix) {
 }
 
 int main(int argc, char *argv[]) {
+	frame_count = 0;
+
 	/* init ncurses */
 	initscr();
 	noecho();
 	curs_set(0);
+	timeout(0);
 
 	/* get window width and height */
 	getmaxyx(stdscr, rows, cols);
@@ -173,14 +184,16 @@ int main(int argc, char *argv[]) {
 	/* initialize pixel directions */
 	update_ray_direction(&direction_matrix);
 
-	frame_count = 0;
-
 	float time_per_frame = 1.0f / FPS;
 	clock_t previous_time = clock();
 
 	for (;; ++frame_count) {
 
-		/*-------- c h a n g e s --------*/
+		/*-------- u s e r    i n p u t --------*/
+
+		if ((keypress = wgetch(stdscr)) != ERR) {
+			break;
+		}
 
 		int temp_rows;
 		int temp_cols;
@@ -195,24 +208,20 @@ int main(int argc, char *argv[]) {
 
 		for (int r = 0; r < rows; ++r) {
 			for (int c = 0; c < cols; ++c) {
-				int step = MAX_STEP;
-				for (int i = 0; step == MAX_STEP && i < SCALING_FACTOR; ++i) {
-					for (int j = 0; step == MAX_STEP && j < SCALING_FACTOR; ++j) {
-						/* camera position */
-						float3 ori = { 0.0f, 1.0f, frame_count * 0.1f };
-						/* get pixel ray direction */
-						float3 dir = *(direction_matrix + r * cols + i * cols + c + j);
-						/* raymarch */
+				/* camera position */
+				float3 ori = { 0.0f, 1.0f, 9.0f - frame_count * 0.005f};
+				/* get pixel ray direction */
+				float3 dir = *(direction_matrix + r * cols + c);
+				/* raymarch */
+				int step = 0;
+				for (float total_dist = 0.0f; step < MAX_STEP; ++step) {
+					//float dist = box_de(float3_add(ori, float3_multf(dir, total_dist)), (float3){ 1.0f, 1.0f, 1.0f });
+					float dist = sphere_de(float3_add(ori, float3_multf(dir, total_dist)), 0.5f);
+					if (dist < MIN_DIST) {
 						step = 0;
-						for (float total_dist = 0.0f; step < MAX_STEP; ++step) {
-							float dist = sphere_de(float3_add(ori, float3_multf(dir, total_dist)), 0.25f + frame_count * 0.0001);
-							if (dist < MIN_DIST) {
-								step = 0;
-								break;
-							}
-							total_dist += dist;
-						}
+						break;
 					}
+					total_dist += dist;
 				}
 				/* in case object was hit, draw */
 				char draw;
@@ -221,18 +230,18 @@ int main(int argc, char *argv[]) {
 				} else {
 					draw = ' ';
 				}
-				mvaddch(r, c, draw);			
+				mvaddch(r, c, draw);
 			}
 		}
-		refresh();
+		/*refresh();*/
 
 		/*-------- f p s    l i m i t --------*/
 
 		clock_t delta_time = clock() - previous_time;
 		float delta_time_sec = (float)(delta_time) / CLOCKS_PER_SEC;
 		float time_remaining = time_per_frame - delta_time_sec;
+		usleep(time_remaining * 1e9);
 		if (time_remaining > 0.0f) {
-			usleep(time_remaining * 1e6);
 		}
 		previous_time = clock();
 	}
