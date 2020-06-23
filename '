@@ -122,10 +122,9 @@ float3 float3_maxf(float3 l, float r) {
 /*-------- r a y m a r c h i n g --------*/
 /*                                       */
 
-float GEOMETRY_SIZE = 1.0f;
+float GEOMETRY_SIZE = 0.2f;
 float3 GEOMETRY_REPETITION;
 float3 HALF_GEOMETRY_REPETITION;
-float3 LIGHT_DIRECTION;
 
 enum de_type {
 	SPHERE,
@@ -143,13 +142,13 @@ float de_cube(float3 point) {
 }
 
 float de_torus(float3 point) {
-	float x = sqrt(point.x * point.x + point.z * point.z) - GEOMETRY_SIZE;
-	float y = point.y;
-	return sqrt(x * x + y * y) - GEOMETRY_SIZE / 2.0f;
+	float x = sqrt(point.x * point.x + point.y * point.y) - GEOMETRY_SIZE;
+	float y = GEOMETRY_SIZE;
+	return sqrt(x * x + y * y) - GEOMETRY_SIZE;
 }
 
-void infinity_operator(float3* point) {
-	*point = float3_sub(float3_mod(float3_add(*point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
+float3 infinity_operator(float3 point) {
+	return float3_sub(float3_mod(float3_add(point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
 }
 
 void update_ray_direction(float3** direction_matrix, float y_scaling_factor, unsigned int rows, unsigned int cols, unsigned int fov) {
@@ -209,19 +208,16 @@ int main(int argc, char *argv[]) {
 	unsigned int frame_count = 0;
 	/* renderer */
 	unsigned int fps = 20;
-	unsigned int fov = 45;
+	unsigned int fov = 60;
 	unsigned int max_step = 32;
 	float min_dist = 1e-3;
 	float y_scaling_factor = 2.0f;
 	/* scene */
-	unsigned int infinity = 1;
-	float geometry_repetition_distance = 3.0f;
-	float3 geometry_repetition = { 1.0f, 1.0f, 1.0f };
-	float3 camera_movement = { 0.0f, 0.0f, -1.0f };
+	float geometry_repetition_distance = 1.0f;
+	float3 geometry_repetition = { 1.0f, 1.0f, 0.0f };
+	float3 camera_movement = { 0.0f, 1.0f, 0.0f };
 	float3 geometry_rotation = { 0.0f, 0.0f, 0.0f };
-	float add = geometry_repetition_distance / 2.0f;
-	float3 offset = { add, add, add };
-	enum de_type type = SPHERE;
+	enum de_type type = TORUS;
 
 	/*---- a r g u m e n t s ----*/
 
@@ -351,27 +347,21 @@ int main(int argc, char *argv[]) {
 				/* raymarch */
 				int step = 0;
 				for (float total_dist = 0.0f; step < max_step; ++step) {
-					/* compute ray point at this step */
-					float3 point = float3_add(ori, float3_multf(dir, total_dist));
-					/* check if user wants infinity */
-					point = float3_add(point, offset);
-					if (infinity & 1) {
-						infinity_operator(&point);
-					}
-					/* get distance with appropiate DE */
 					float dist;
 					switch (type) {
 						case SPHERE:
-							dist = de_sphere(point);
+							dist = de_sphere(infinity_operator(float3_add(ori, float3_multf(dir, total_dist))));
+							//dist = de_sphere((float3_add(ori, float3_multf(dir, total_dist))));
 							break;
 						case CUBE:
-							dist = de_cube(point);
+							dist = de_cube(infinity_operator(float3_add(ori, float3_multf(dir, total_dist))));
 							break;
 						case TORUS:
-							dist = de_torus(point);
+							dist = de_torus(infinity_operator(float3_add(ori, float3_multf(dir, total_dist))));
 							break;
 					}
 					if (dist < min_dist) {
+						step = 0;
 						break;
 					}
 					total_dist += dist;
@@ -379,8 +369,7 @@ int main(int argc, char *argv[]) {
 				/* in case object was hit, draw */
 				char draw;
 				if (step < max_step) {
-					if (step > 20) draw = '.';
-					else draw = '#';
+					draw = '#';
 				} else {
 					draw = ' ';
 				}
