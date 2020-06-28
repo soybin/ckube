@@ -32,9 +32,11 @@ typedef struct _float3 {
 	float z;
 } float3;
 
-typedef struct _mat4_3{
-	int x;
-} mat4_3;
+typedef struct _mat3_3{
+	float3 x;
+	float3 y;
+	float3 z;
+} mat3_3;
 
 float3 float3_add(float3 l, float3 r) {
 	float3 ret = { l.x + r.x, l.y + r.y, l.z + r.z };
@@ -122,7 +124,8 @@ float3 float3_maxf(float3 l, float r) {
 /*-------- r a y m a r c h i n g --------*/
 /*                                       */
 
-float GEOMETRY_SIZE = 1.0f;
+/* globals */
+float GEOMETRY_SIZE = 0.25f;
 float3 GEOMETRY_REPETITION;
 float3 HALF_GEOMETRY_REPETITION;
 float3 LIGHT_DIRECTION;
@@ -133,6 +136,7 @@ enum de_type {
 	TORUS
 };
 
+/* distance estimators */
 float de_sphere(float3 point) {
 	return float3_length(point) - GEOMETRY_SIZE;
 }
@@ -152,20 +156,42 @@ void infinity_operator(float3* point) {
 	*point = float3_sub(float3_mod(float3_add(*point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
 }
 
+float3 applyRotation(float3 point, unsigned count) {
+	float ry = count * 1.0f;
+	float rx = count * -.05f;
+	float rz = count * 0.02f;
+
+	/* get rotation */
+	double sinz = sin(rz);
+	double cosz = cos(rz);
+	double siny = sin(ry);
+	double cosy = cos(ry);
+	double sinx = sin(rx);
+	double cosx = cos(rx);
+
+	/* 
+	 * rotation matrix.
+	 * precompute at startup.
+	 * https://en.wikipedia.org/wiki/Rotation_matrix
+	 */
+
+	mat3_3 rm = {
+		(float3){cosz * cosy, cosz * siny * sinx - sinz * cosx, cosz * siny * cosx + sinz * sinx},
+		(float3){sinz * cosy, sinz * siny * sinx + cosy * cosx, sinz * siny * cosx - cosz * sinx},
+		(float3){-siny, cosy * sinx, cosy * cosx}
+	};
+
+	/* apply rotation */
+	point = (float3) {
+		rm.x.x * point.x + rm.y.x * point.y + rm.z.x * point.z,
+		rm.x.y * point.x + rm.y.y * point.y + rm.z.y * point.z,
+		rm.x.z * point.x + rm.y.z * point.y + rm.z.z * point.z
+	};
+
+	return point;
+}
+
 void update_ray_direction(float3** direction_matrix, float y_scaling_factor, unsigned int rows, unsigned int cols, unsigned int fov) {
-	free(*direction_matrix);
-	*direction_matrix = (float3*)malloc(rows * cols * sizeof(float3));
-	/* fill up */
-	for (int r = 0; r < rows; ++r) {
-		for (int c = 0; c < cols; ++c) {
-			float3 dir;
-			dir.y = (float)r * y_scaling_factor + 0.5f - rows * y_scaling_factor / 2.0f;
-			dir.x = (float)c + 0.5f - cols / 2.0f;
-			dir.z = -(float)rows / tan(fov * M_PI / 180.0f / 2.0f);
-			dir = float3_normalize(dir);
-			*(*direction_matrix + r * cols + c) = dir;
-		}
-	}
 }
 
 /*                                       */
@@ -178,9 +204,7 @@ void print_help() {
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	printf("%s\n", "~~~~  g e o m e t r y  ~~~~");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	printf("%s\n", "-S         -> set shape to a sphere (default)");
 	printf("%s\n", "-C         -> set shape to a cube");
-	printf("%s\n", "-T         -> set shape to a torus");
 	printf("%s\n", "-i [x/y/z] -> repeat shape infinitely along the x, y, or z axis");
 	printf("%s\n", "-c [x/y/z] -> continuously move camera along the x, y, or z axis");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -214,14 +238,14 @@ int main(int argc, char *argv[]) {
 	float min_dist = 1e-3;
 	float y_scaling_factor = 2.0f;
 	/* scene */
-	unsigned int infinity = 1;
-	float geometry_repetition_distance = 3.0f;
-	float3 geometry_repetition = { 1.0f, 1.0f, 1.0f };
-	float3 camera_movement = { 0.0f, 0.0f, -1.0f };
+	unsigned int infinity = 0;
+	float geometry_repetition_distance = 1.0f;
+	float3 geometry_repetition = { 0.0f, 0.0f, 0.0f };
+	float3 camera_movement = { 0.0f, 0.0f, 0.0f };
+	float3 camera_offset = { 0.0f, 0.0f, 0.0f };
 	float3 geometry_rotation = { 0.0f, 0.0f, 0.0f };
-	float add = geometry_repetition_distance / 2.0f;
-	float3 offset = { add, add, add };
-	enum de_type type = SPHERE;
+
+	enum de_type type = CUBE;
 
 	/*---- a r g u m e n t s ----*/
 
@@ -241,6 +265,7 @@ int main(int argc, char *argv[]) {
 				type = TORUS;
 				break;
 			case 'i':
+				infinity |= (1 << 0);
 				switch (argv[++i][0]) {
 					case 'x':
 						geometry_repetition.x = 1.0f;
@@ -287,21 +312,19 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/*---- i n i t    v a r s ----*/
-
-	/* compute scene after getting fps var */
-	geometry_repetition = float3_multf(geometry_repetition, geometry_repetition_distance);
-	camera_movement = float3_divf(camera_movement, fps);
-
-	/* update raymarching global vars */
-	GEOMETRY_REPETITION = geometry_repetition;
-	HALF_GEOMETRY_REPETITION = float3_divf(geometry_repetition, 2.0f);
+	/*---- i n i t ----*/
 
 	/* init ncurses */
 	initscr();
 	noecho();
 	curs_set(0);
 	timeout(0);
+	
+	/* check if terminal supports color */
+	if (!has_colors()) {
+		printf("%s\n", "[-] Your terminal doesn't support colors. Exiting Program");
+		return 1;
+	}
 
 	/* get window width and height */
 	getmaxyx(stdscr, rows, cols);
@@ -311,56 +334,91 @@ int main(int argc, char *argv[]) {
 	 * for every pixel in the terminal
 	 */
 	float3* direction_matrix = NULL;
+	
+	/* compute scene after getting fps var */
+	geometry_repetition = float3_multf(geometry_repetition, geometry_repetition_distance);
+	camera_movement = float3_divf(camera_movement, fps);
 
-	/* initialize pixel directions */
-	update_ray_direction(&direction_matrix, y_scaling_factor, rows, cols, fov);
+	/* update raymarching global vars */
+	GEOMETRY_REPETITION = geometry_repetition;
+	HALF_GEOMETRY_REPETITION = float3_divf(geometry_repetition, 2.0f);
 
+	/* configure colors */
+	start_color();
+	init_pair(1, COLOR_RED, COLOR_BLACK);
+	init_pair(2, COLOR_WHITE, COLOR_BLACK);
+	init_pair(3, COLOR_BLUE, COLOR_BLACK);
+
+	/* compute frame duration */
 	float time_per_frame = 1.0f / (float)fps;
+
+	/* first frame timestamp */
 	clock_t previous_time = clock();
 
 	for (; run; ++frame_count) {
 
 		/*---- u s e r    i n p u t ----*/
-
+		
+		/* get out */
 		if ((keypress = wgetch(stdscr)) != ERR) {
 			switch (keypress) {
+				case 27:
 				case 'q':
 					run = false;
 					break;
 			}
 		}
 
+		/* resolution change */
 		int temp_rows;
 		int temp_cols;
 		getmaxyx(stdscr, temp_rows, temp_cols);
 		if (temp_rows != rows || temp_cols != cols) {
 			rows = temp_rows;
 			cols = temp_cols;
+			free(direction_matrix);
+			direction_matrix = (float3*)malloc(rows * cols * sizeof(float3));
+			/* fill up */
+			for (int r = 0; r < rows; ++r) {
+				for (int c = 0; c < cols; ++c) {
+					float3 dir;
+					dir.y = (float)r * y_scaling_factor + 0.5f - rows * y_scaling_factor / 2.0f;
+					dir.x = (float)c + 0.5f - cols / 2.0f;
+					dir.z = -(float)rows / tan(fov * M_PI / 180.0f / 2.0f);
+					dir = float3_normalize(dir);
+					*(direction_matrix + r * cols + c) = dir;
+				}
+			}
 			update_ray_direction(&direction_matrix, y_scaling_factor, rows, cols, fov);
 		}
 
 		/*---- r e n d e r i n g ----*/
 
 		/* camera position for this frame */
-		float3 ori = float3_add((float3){0.0f, 0.0f, GEOMETRY_SIZE + geometry_repetition_distance / 2.0f}, float3_multf(camera_movement, frame_count));
+		float3 ori;
+		if (infinity & 1) {
+			ori = float3_add(float3_add(HALF_GEOMETRY_REPETITION, float3_multf(camera_movement, frame_count)), camera_offset);
+		} else {
+			ori = (float3){ 0.0f, 0.0f, 5.0f * GEOMETRY_SIZE };
+		}
 
 		for (int r = 0; r < rows; ++r) {
 			for (int c = 0; c < cols; ++c) {
 				/* get pixel ray direction */
 				float3 dir = *(direction_matrix + r * cols + c);
+				float3 point;
 				/* raymarch */
 				int step = 0;
 				for (float total_dist = 0.0f; step < max_step; ++step) {
 					/* compute ray point at this step */
-					float3 point = float3_add(ori, float3_multf(dir, total_dist));
+					point = applyRotation(float3_add(ori, float3_multf(dir, total_dist)), frame_count);
 					/* check if user wants infinity */
-					point = float3_add(point, offset);
 					if (infinity & 1) {
 						infinity_operator(&point);
 					}
 					/* get distance with appropiate DE */
-					float dist;
-					switch (type) {
+					float dist = de_cube(point);
+					/*switch (type) {
 						case SPHERE:
 							dist = de_sphere(point);
 							break;
@@ -375,12 +433,33 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 					total_dist += dist;
-				}
+				}*/
 				/* in case object was hit, draw */
 				char draw;
 				if (step < max_step) {
 					if (step > 20) draw = '.';
-					else draw = '#';
+					else draw = '#' + step - 2;
+					/*---- n o r m a l ----*/
+					const float h = 0.001f;
+					const float3 xyy = { 1.0f, -1.0f, -1.0f };
+					const float3 yyx = { -1.0f, -1.0f, 1.0f };
+					const float3 yxy = { -1.0f, 1.0f, -1.0f };
+					const float3 xxx = { 1.0f, 1.0f, 1.0f };
+					float3 normal = float3_normalize(
+							float3_add(
+								float3_add(
+									float3_multf(xyy, de_cube(float3_add(point, float3_multf(xyy, h)))),
+									float3_multf(yyx, de_cube(float3_add(point, float3_multf(yyx, h))))
+									),
+								float3_add(
+									float3_multf(yxy, de_cube(float3_add(point, float3_multf(yxy, h)))),
+									float3_multf(xxx, de_cube(float3_add(point, float3_multf(xxx, h))))
+									)
+								)
+							);
+					int normal_index = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
+					attron(COLOR_PAIR(normal_index));
+					draw = normal_index + 34;
 				} else {
 					draw = ' ';
 				}
