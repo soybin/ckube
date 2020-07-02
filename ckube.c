@@ -4,12 +4,16 @@
  * Copyright (c) 2020 Pablo Peñarroja
  */
 
+#define _XOPEN_SOURCE_EXTENDED
+
 #include <ncurses.h>
+#include <locale.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 
 /*                         */
 /*-------- m a t h --------*/
@@ -23,6 +27,10 @@
 
 int int_random_range(int min_range, int max_range) {
 	return (rand() % (max_range - min_range + 1)) + min_range;
+}
+
+float float_random_range(float min_range, float max_range) {
+	return ((float)rand()/(float)(RAND_MAX)) * (max_range - min_range) + min_range;
 }
 
 typedef struct _float3 {
@@ -120,7 +128,7 @@ float3 float3_maxf(float3 l, float r) {
 }
 
 /* multiply by 3x3 matrix */
-float3 mult_float3_mat3_3(float3 l, mat3_3 r) {
+float3 float3_mult_mat3_3(float3 l, mat3_3 r) {
 	return (float3){
 		l.x * r.x.x + l.y * r.y.x + l.z * r.z.x,
 		l.x * r.x.y + l.y * r.y.y + l.z * r.z.y,
@@ -138,19 +146,12 @@ float3 HALF_GEOMETRY_REPETITION;
 
 /* cube distance estimator */
 float de_cube(float3 point) {
-	float3 a = float3_subf(float3_abs(point), GEOMETRY_SIZE);
+	float3 a = float3_subf(float3_abs(point), 1.0f);
 	return float3_length(float3_maxf(a, 0.0f)) + MIN(MAX(a.x, MAX(a.y, a.z)), 0.0f);
-}
-
-/* octahedron distance estimator */
-float de_octahedron(float3 point) {
-	point = float3_abs(point);
-	return (point.x + point.y + point.z - 1.0f) * 0.57735027;
 }
 
 /* theoretical modulo infinity */
 void infinity_operator(float3* point) {
-	*point = float3_sub(float3_mod(float3_add(*point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
 }
 
 /*                                       */
@@ -158,59 +159,72 @@ void infinity_operator(float3* point) {
 /*                                       */
 
 void print_help() {
-	printf("%s\n", "         _____  __ __  __  __  ___    ____      ");
-	printf("%s\n", "        / ___/ / //_/ / / / / / _ )  / __/      ");
-	printf("%s\n", "       / /__  /  <   / /_/ / / _  | / _/        ");
-	printf("%s\n", "      /____/ /_//_/ /_____/ /____/ /___/        ");
-	printf("%s\n", "                                                ");
-	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	printf("%s\n", "                                                ");
-	printf("%s\n", "-H [int] -> horizontal separation -> 0");
-	printf("%s\n", "-V [int] -> vertical separation -> 0");
-	printf("%s\n", "-h [int] -> move camera horizontally -> 0");
-	printf("%s\n", "-v [int] -> move camera vertically");
-	printf("%s\n", "-P [int] -> pitch rotation (deg/frame) -> random");
-	printf("%s\n", "-Y [int] -> yaw rotation (deg/frame)   -> random");
-	printf("%s\n", "-R [int] -> roll rotation (deg/frame)  -> random");
-	printf("%s\n", "                                      ");
-	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	printf("%s\n", "                                      ");
-	printf("%s\n", "-F [int]   -> frames per second ->  20");
-	printf("%s\n", "-f [int]   -> field of view     ->  20");
-	printf("%s\n", "-v [float] -> vertical stretch  -> 2.0");
-	printf("%s\n", "-s [int]   -> raymarch steps    ->  24");
-	printf("%s\n", "-d [float] -> intersect dist    ->1e-3");
-	printf("%s\n", "                                      ");
-	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "          _____  __ __  __  __  ___    ____       ");
+	printf("%s\n", "         / ___/ / //_/ / / / / / _ )  / __/       ");
+	printf("%s\n", "        / /__  /  <   / /_/ / / _  | / _/         ");
+	printf("%s\n", "       /____/ /_//_/ /_____/ /____/ /___/         ");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "                    by soybin                     ");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "    flag [arg]  |  what is it  |  defaul value    ");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "-r         -> random settings            ->  false");
+	printf("%s\n", "-c [int]   -> color pallette (0 - 4)     ->      0");
+	printf("%s\n", "-d [str]   -> drawing characters (3)     ->    ░▓█");
+	printf("%s\n", "-h         -> print this menu            ->  false");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "-H [float] -> horizontal separation      ->      0");
+	printf("%s\n", "-V [float] -> vertical separation        ->      0");
+	printf("%s\n", "-m [float] -> move camera horizontally   ->      0");
+	printf("%s\n", "-M [float] -> move camera vertically     ->      0");
+	printf("%s\n", "-P [int]   -> pitch in degrees per frame -> random");
+	printf("%s\n", "-Y [int]   -> yaw in degrees per frame   -> random");
+	printf("%s\n", "-R [int]   -> roll in degrees per frame  -> random");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	printf("%s\n", "-f [int]   -> frames per second          ->     20");
+	printf("%s\n", "-F [int]   -> field of view              ->     20");
+	printf("%s\n", "-s [float] -> vertical stretch           ->    2.0");
+	printf("%s\n", "-S [int]   -> raymarching max steps      ->     24");
+	printf("%s\n", "-D [float] -> intersection distance      ->   1e-3");
+	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 }
 
 int main(int argc, char *argv[]) {
-	print_help();
+
+	/* allow utf-8 */
+	setlocale(LC_ALL, "");
+
+	/* seed random functions */
+	srand((unsigned int)time(NULL));
 
 	/*---- d e c l a r e    v a r s ----*/
 
 	/* application */
-	unsigned int run = 1;
+	unsigned int run = 3; /* first bit -> exit? | second bit -> pause rendering? */
 	unsigned int cols;
 	unsigned int rows;
 	unsigned int keypress;
 	unsigned int frame_count = 0;
 	/* renderer */
-	unsigned int fps = 30;
+	unsigned int fps = 20;
 	unsigned int fov = 60;
 	unsigned int max_step = 32;
-	float min_dist = 2e-3;
+	float min_dist = 1e-3;
 	float y_scaling_factor = 2.0f;
 	/* scene */
-	unsigned int infinity = 0;
-	float geometry_repetition_distance = 4.0f;
-	float3 geometry_repetition = { 0.0f, 1.0f, 0.0f };
+	int geometry_rotation_x = int_random_range(1, 5);
+	int geometry_rotation_y = int_random_range(1, 5);
+	int geometry_rotation_z = int_random_range(1, 5);
+	int color_one = 1; /* red */
+	int color_two = 2; /* green */
+	int color_three = 4; /* blue */
+	int color_background = 0;
+	float geometry_repetition_x = 0.0f;
+	float geometry_repetition_y = 0.0f;
 	float camera_distance = 4.0f;
 	float camera_movement_x = 0.0f;
 	float camera_movement_y = 0.0f;
-	int geometry_rotation_x = int_random_range(-5, 5);
-	int geometry_rotation_y = int_random_range(-5, 5);
-	int geometry_rotation_z = int_random_range(-5, 5);
+	wchar_t drawing_glyphs[3] = { L'░', L'▓', L'█' };
 
 	/*---- a r g u m e n t s ----*/
 
@@ -220,19 +234,93 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 		switch (argv[i][1]) {
-			case 'F':
-				fps = atoi(argv[++i]);
+			case 'r': /* random assignment */
+				fov = int_random_range(45, 60);
+				if (int_random_range(0, 1)) {
+					geometry_repetition_x = float_random_range(4.0f, 6.0f);
+					camera_movement_x = float_random_range(-0.1f, 0.1f);
+				}
+				if (int_random_range(0, 1)) {
+					geometry_repetition_y = float_random_range(4.0f, 6.0f);
+					camera_movement_y = float_random_range(-0.1f, 0.1f);
+				}
+				camera_distance = float_random_range(4.0f, 6.0f);
 				break;
-			case 'f':
-				fov = atoi(argv[++i]);
-				break;
-			case 'v':
-				y_scaling_factor = (float)atof(argv[++i]);
-				break;
-			case 's':
-				max_step = atoi(argv[++i]);
+			case 'c': /* color pallette */
+				/*
+				 * COLOR_BLACK   0
+				 * COLOR_RED     1
+				 * COLOR_GREEN   2
+				 * COLOR_YELLOW  3
+				 * COLOR_BLUE    4
+				 * COLOR_MAGENTA 5
+				 * COLOR_CYAN    6
+				 * COLOR_WHITE   7
+				 */
+				switch (atoi(argv[++i]) % 4) {
+					case 1:
+						color_one = 3;
+						color_two = 5;
+						color_three = 6;
+						color_background = 0;
+						break;
+					case 2:
+						color_one = 4;
+						color_two = 2;
+						color_three = 7;
+						color_background = 0;
+						break;
+					case 3:
+						color_one = 3;
+						color_two = 5;
+						color_three = 6;
+						break;
+				}
 				break;
 			case 'd':
+				++i;
+				drawing_glyphs[0] = argv[i][0];
+				drawing_glyphs[1] = argv[i][1];
+				drawing_glyphs[2] = argv[i][2];
+				break;
+			case 'h':
+				print_help();
+				return 1;
+				break;
+			case 'H':
+				geometry_repetition_x = atof(argv[++i]);
+				break;
+			case 'V':
+				geometry_repetition_y = atof(argv[++i]);
+				break;
+			case 'm':
+				camera_movement_x = atof(argv[++i]);
+				break;
+			case 'M':
+				camera_movement_y = atof(argv[++i]);
+				break;
+			case 'P': /* pitch rotation */
+				geometry_rotation_x = atoi(argv[++i]);
+				break;
+			case 'Y': /* yaw rotation */
+				geometry_rotation_y = atoi(argv[++i]);
+				break;
+			case 'R': /* roll rotation */
+				geometry_rotation_z = atoi(argv[++i]);
+				break;
+			case 'f':
+				fps = atoi(argv[++i]);
+				break;
+			case 'F':
+				fov = atoi(argv[++i]);
+				break;
+			case 's':
+				y_scaling_factor = (float)atof(argv[++i]);
+				break;
+			case 'S':
+				max_step = atoi(argv[++i]);
+				break;
+			case 'D':
 				min_dist = atof(argv[++i]);
 				break;
 			default:
@@ -303,19 +391,15 @@ int main(int argc, char *argv[]) {
 		cos_z[i] = cos(rotation_z);
 	}
 
-	/* compute scene after getting fps var */
-	geometry_repetition = float3_multf(geometry_repetition, geometry_repetition_distance);
-	//camera_movement = float3_divf(camera_movement, fps);
-
 	/* update raymarching global vars */
-	GEOMETRY_REPETITION = geometry_repetition;
-	HALF_GEOMETRY_REPETITION = float3_divf(geometry_repetition, 2.0f);
+	GEOMETRY_REPETITION = (float3){ geometry_repetition_x, geometry_repetition_y, 0.0f };
+	HALF_GEOMETRY_REPETITION = float3_divf(GEOMETRY_REPETITION, 2.0f);
 
 	/* configure colors */
 	start_color();
-	init_pair(1, COLOR_RED, COLOR_BLACK);
-	init_pair(2, COLOR_WHITE, COLOR_BLACK);
-	init_pair(3, COLOR_BLUE, COLOR_BLACK);
+	init_pair(1, color_one, color_background);
+	init_pair(2, color_two, color_background);
+	init_pair(3, color_three, color_background);
 
 	/* compute frame duration */
 	float time_per_frame = 1.0f / (float)fps;
@@ -325,16 +409,19 @@ int main(int argc, char *argv[]) {
 
 	/*---- m a i n    l o o p ----*/
 
-	for (float3 ori = { 0.0f, 0.0f, camera_distance }; run; ++frame_count) {
+	for (float3 ori = { 0.0f, 0.0f, camera_distance }; run & (1 << 0); ) {
 
 		/*---- u s e r    i n p u t ----*/
 
 		/* get out */
 		if ((keypress = wgetch(stdscr)) != ERR) {
 			switch (keypress) {
-				case 27:
+				case ' ': /* spacebar */
+					run ^= (1 << 1);
+					break;
+				case 27: /* escape */
 				case 'q':
-					run = false;
+					run ^= (1 << 0);
 					break;
 			}
 		}
@@ -343,7 +430,7 @@ int main(int argc, char *argv[]) {
 		int temp_rows;
 		int temp_cols;
 		getmaxyx(stdscr, temp_rows, temp_cols);
-		if (temp_rows != rows || temp_cols != cols) {
+		if (rows != temp_rows || cols != temp_cols) {
 			rows = temp_rows;
 			cols = temp_cols;
 			free(direction_matrix);
@@ -361,89 +448,95 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		/*---- r e n d e r i n g ----*/
+		/* check if rendering is paused */
 
-		/* update ray origin for this frame */
-		ori.x += camera_movement_x;
-		ori.y += camera_movement_y;
+		if (run & (1 << 1)) {
 
-		/* compute general rotation matrix */
-		int pos_x = frame_count % ratios_x_size;
-		int pos_y = frame_count % ratios_y_size;
-		int pos_z = frame_count % ratios_z_size;
-		mat3_3 general_rotation_matrix = (mat3_3) {
-			(float3) { cos_z[pos_z] * cos_y[pos_y],
-								 cos_z[pos_z] * sin_y[pos_y] * sin_x[pos_x] - sin_z[pos_z] * cos_x[pos_x],
-								 cos_z[pos_z] * sin_y[pos_y] * cos_x[pos_x] + sin_z[pos_z] * sin_x[pos_x] },
-			(float3) { sin_z[pos_z] * cos_y[pos_y],
-								 sin_z[pos_z] * sin_y[pos_y] * sin_x[pos_x] + cos_z[pos_z] * cos_x[pos_x],
-								 sin_z[pos_z] * sin_y[pos_y] * cos_x[pos_x] - cos_z[pos_z] * sin_x[pos_x] },
-			(float3) { -sin_y[pos_y],
-								 cos_y[pos_y] * sin_x[pos_x],
-								 cos_y[pos_y] * cos_x[pos_x] }
-		};
+			/*---- r e n d e r i n g ----*/
 
-		for (int r = 0; r < rows; ++r) {
-			for (int c = 0; c < cols; ++c) {
-				/* get pixel ray direction */
-				float3 dir = *(direction_matrix + r * cols + c);
-				float3 point;
-				/* raymarch */
-				int step = 0;
-				for (float total_dist = 0.0f; step < max_step; ++step) {
-					/* compute ray point at this step */
-					point = float3_add(ori, float3_multf(dir, total_dist));
-					/* check if user wants infinity */
-					if (infinity & 1) {
-						infinity_operator(&point);
+			/* update ray origin for this frame */
+			ori.x += camera_movement_x;
+			ori.y += camera_movement_y;
+
+			/* compute general rotation matrix */
+			int pos_x = frame_count % ratios_x_size;
+			int pos_y = frame_count % ratios_y_size;
+			int pos_z = frame_count % ratios_z_size;
+			mat3_3 general_rotation_matrix = (mat3_3) {
+				(float3) { cos_z[pos_z] * cos_y[pos_y],
+					cos_z[pos_z] * sin_y[pos_y] * sin_x[pos_x] - sin_z[pos_z] * cos_x[pos_x],
+					cos_z[pos_z] * sin_y[pos_y] * cos_x[pos_x] + sin_z[pos_z] * sin_x[pos_x] },
+				(float3) { sin_z[pos_z] * cos_y[pos_y],
+					sin_z[pos_z] * sin_y[pos_y] * sin_x[pos_x] + cos_z[pos_z] * cos_x[pos_x],
+					sin_z[pos_z] * sin_y[pos_y] * cos_x[pos_x] - cos_z[pos_z] * sin_x[pos_x] },
+				(float3) { -sin_y[pos_y],
+					cos_y[pos_y] * sin_x[pos_x],
+					cos_y[pos_y] * cos_x[pos_x] }
+			};
+
+			int previous_normal_index = 1;
+			for (int r = 0; r < rows; ++r) {
+				for (int c = 0; c < cols; ++c) {
+					/* get pixel ray direction */
+					float3 dir = *(direction_matrix + r * cols + c);
+					float3 point;
+					/* raymarch */
+					int step = 0;
+					for (float total_dist = 0.0f; step < max_step; ++step) {
+						/* compute intersection */
+						point = float3_add(ori, float3_multf(dir, total_dist));
+						/* apply infinity */
+						point = float3_sub(float3_mod(float3_add(point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
+						/* apply rotation */
+						point = float3_mult_mat3_3(point, general_rotation_matrix);
+						/* get distance */
+						float dist = de_cube(point);
+						if (dist < min_dist) {
+							break;
+						}
+						total_dist += dist;
 					}
-					/* apply rotation */
-					point = mult_float3_mat3_3(point, general_rotation_matrix);
-					/* get distance */
-					float dist = de_cube(point);
-					if (dist < min_dist) {
-						break;
-					}
-					total_dist += dist;
-				}
-				/* in case object was hit, draw */
-				char draw;
-				if (step < max_step) {
-					/*---- n o r m a l ----*/
-					const float h = 0.001f;
-					const float3 xyy = { 1.0f, -1.0f, -1.0f };
-					const float3 yyx = { -1.0f, -1.0f, 1.0f };
-					const float3 yxy = { -1.0f, 1.0f, -1.0f };
-					const float3 xxx = { 1.0f, 1.0f, 1.0f };
-					float3 normal = float3_normalize(
-							float3_add(
+					/* in case object was hit, draw */
+					wchar_t draw[1] = L" ";
+					if (step < max_step) {
+						/*---- n o r m a l ----*/
+						const float h = 1e-4;
+						const float3 xyy = { 1.0f, -1.0f, -1.0f };
+						const float3 yyx = { -1.0f, -1.0f, 1.0f };
+						const float3 yxy = { -1.0f, 1.0f, -1.0f };
+						const float3 xxx = { 1.0f, 1.0f, 1.0f };
+						float3 normal = float3_normalize(
 								float3_add(
-									float3_multf(xyy, de_cube(float3_add(point, float3_multf(xyy, h)))),
-									float3_multf(yyx, de_cube(float3_add(point, float3_multf(yyx, h))))
-									),
-								float3_add(
-									float3_multf(yxy, de_cube(float3_add(point, float3_multf(yxy, h)))),
-									float3_multf(xxx, de_cube(float3_add(point, float3_multf(xxx, h))))
+									float3_add(
+										float3_multf(xyy, de_cube(float3_add(point, float3_multf(xyy, h)))),
+										float3_multf(yyx, de_cube(float3_add(point, float3_multf(yyx, h))))
+										),
+									float3_add(
+										float3_multf(yxy, de_cube(float3_add(point, float3_multf(yxy, h)))),
+										float3_multf(xxx, de_cube(float3_add(point, float3_multf(xxx, h))))
+										)
 									)
-								)
-							);
-					int normal_index = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
-					attron(COLOR_PAIR(normal_index));
-					draw = normal_index + 34;
-					draw = normal_index == 0 ? ' ' : draw;
-				} else {
-					draw = ' ';
+								);
+						int normal_index = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
+						if (normal_index == 0) {
+							normal_index = previous_normal_index;
+						} else {
+							previous_normal_index = normal_index;
+						}
+						attron(COLOR_PAIR(normal_index));
+						draw[0] = (wchar_t)drawing_glyphs[normal_index - 1];	
+					}
+					mvaddwstr(r, c, draw);
 				}
-				mvaddch(r, c, draw);
 			}
+			++frame_count;
 		}
 
 		/*---- f p s    l i m i t ----*/
 
-		clock_t delta_time = clock() - previous_time;
-		clock_t delta_time_sec = (double)(delta_time) / CLOCKS_PER_SEC;
-		clock_t time_remaining = (time_per_frame - delta_time_sec) * 1e6;
-		if (time_remaining > 0.0f) {
+		long double delta_time = (long double)(clock() - previous_time) / CLOCKS_PER_SEC;
+		int time_remaining = (time_per_frame - delta_time) * 1e6;
+		if (time_remaining > 0) {
 			usleep(time_remaining);
 		}
 		previous_time = clock();

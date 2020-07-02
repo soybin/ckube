@@ -1,2 +1,2 @@
-# kcube
+# ckube
 raymarching for your terminal
