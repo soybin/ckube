@@ -25,14 +25,6 @@
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
-int int_random_range(int min_range, int max_range) {
-	return (rand() % (max_range - min_range + 1)) + min_range;
-}
-
-float float_random_range(float min_range, float max_range) {
-	return ((float)rand()/(float)(RAND_MAX)) * (max_range - min_range) + min_range;
-}
-
 typedef struct _float3 {
 	float x;
 	float y;
@@ -45,90 +37,74 @@ typedef struct _mat3_3{
 	float3 z;
 } mat3_3;
 
-float3 float3_add(float3 l, float3 r) {
-	float3 ret = { l.x + r.x, l.y + r.y, l.z + r.z };
-	return ret;
+static inline float3 float3_add(float3 l, float3 r) {
+	return (float3){ l.x + r.x, l.y + r.y, l.z + r.z };
 }
 
-float3 float3_addf(float3 l, float r) {
-	float3 ret =  { l.x + r, l.y + r, l.z + r };
-	return ret;
+static inline float3 float3_addf(float3 l, float r) {
+	return (float3){ l.x + r, l.y + r, l.z + r };
 }
 
-float3 float3_sub(float3 l, float3 r) {
-	float3 ret = { l.x - r.x, l.y - r.y, l.z - r.z };
-	return ret;
+static inline float3 float3_sub(float3 l, float3 r) {
+	return (float3){ l.x - r.x, l.y - r.y, l.z - r.z };
 }
 
-float3 float3_subf(float3 l, float r) {
-	float3 ret = { l.x - r, l.y - r, l.z - r };
-	return ret;
+static inline float3 float3_subf(float3 l, float r) {
+	return (float3){ l.x - r, l.y - r, l.z - r };
 }
 
-float3 float3_mult(float3 l, float3 r) {
-	float3 ret = { l.x * r.x, l.y * r.y, l.z * l.z };
-	return ret;
+static inline float3 float3_mult(float3 l, float3 r) {
+	return (float3){ l.x * r.x, l.y * r.y, l.z * l.z };
 }
 
-float3 float3_multf(float3 l, float r) {
-	float3 ret = { l.x * r, l.y * r, l.z * r };
-	return ret;
+static inline float3 float3_multf(float3 l, float r) {
+	return (float3){ l.x * r, l.y * r, l.z * r };
 }
 
-float3 float3_div(float3 l, float3 r) {
-	float3 ret = { l.x / r.x, l.y / r.y, l.z / r.z };
-	return ret;
+static inline float3 float3_div(float3 l, float3 r) {
+	return (float3){ l.x / r.x, l.y / r.y, l.z / r.z };
 }
 
-float3 float3_divf(float3 l, float r) {
-	float3 ret = { l.x / r, l.y / r, l.z / r };
-	return ret;
+static inline float3 float3_divf(float3 l, float r) {
+	return (float3){ l.x / r, l.y / r, l.z / r };
 }
 
-float float3_length(float3 v) {
+static inline float float3_length(float3 v) {
 	return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-float3 float3_normalize(float3 v) {
+static inline float3 float3_normalize(float3 v) {
 	float length = float3_length(v);
 	float3 ret = { v.x / length, v.y / length, v.z / length };
 	return ret;
 }
 
-float float3_dot(float3 l, float3 r) {
+static inline float float3_dot(float3 l, float3 r) {
 	return l.x * r.x + l.y * r.y + l.z * r.z;
 }
 
-float3 float3_mod(float3 l, float3 r) {
-	float3 ret;
-	ret.x = l.x - r.x * floor(l.x / (r.x == 0.0f ? 1.0f : r.x));
-	ret.y = l.y - r.y * floor(l.y / (r.y == 0.0f ? 1.0f : r.y));
-	ret.z = l.z - r.z * floor(l.z / (r.z == 0.0f ? 1.0f : r.z));
-	return ret;
-}
-
-float3 float3_abs(float3 v) {
+static inline float3 float3_abs(float3 v) {
 	float3 ret = { ABS(v.x), ABS(v.y), ABS(v.z) };
 	return ret;
 }
 
-float3 float3_min(float3 l, float3 r) {
+static inline float3 float3_min(float3 l, float3 r) {
 	float3 ret = { MIN(l.x, r.x), MIN(l.y, r.y), MIN(l.z, r.z) };
 	return ret;
 }
 
-float3 float3_max(float3 l, float3 r) {
+static inline float3 float3_max(float3 l, float3 r) {
 	float3 ret = { MAX(l.x, r.x), MAX(l.y, r.y), MAX(l.z, r.z) };
 	return ret;
 }
 
-float3 float3_maxf(float3 l, float r) {
+static inline float3 float3_maxf(float3 l, float r) {
 	float3 ret = { MAX(l.x, r), MAX(l.y, r), MAX(l.z, r) };
 	return ret;
 }
 
 /* multiply by 3x3 matrix */
-float3 float3_mult_mat3_3(float3 l, mat3_3 r) {
+static inline float3 float3_mult_mat3_3(float3 l, mat3_3 r) {
 	return (float3){
 		l.x * r.x.x + l.y * r.y.x + l.z * r.z.x,
 		l.x * r.x.y + l.y * r.y.y + l.z * r.z.y,
@@ -136,35 +112,42 @@ float3 float3_mult_mat3_3(float3 l, mat3_3 r) {
 	};
 }
 
+/* float mod operator */
+static inline float float_mod(float l, float r) {
+	return l - r * floor(l / (r != 0.0f ? r : 1.0f));
+}
+
+/* random integer in range */
+static inline int int_random_range(int min_range, int max_range) {
+	return (rand() % (max_range - min_range + 1)) + min_range;
+}
+
+/* random float in range */
+static inline float float_random_range(float min_range, float max_range) {
+	return ((float)rand()/(float)(RAND_MAX)) * (max_range - min_range) + min_range;
+}
+
 /*                                       */
 /*-------- r a y m a r c h i n g --------*/
 /*                                       */
 
-float GEOMETRY_SIZE = 1.0f;
-float3 GEOMETRY_REPETITION;
-float3 HALF_GEOMETRY_REPETITION;
-
 /* cube distance estimator */
-float de_cube(float3 point) {
+static inline float de_cube(float3 point) {
 	float3 a = float3_subf(float3_abs(point), 1.0f);
 	return float3_length(float3_maxf(a, 0.0f)) + MIN(MAX(a.x, MAX(a.y, a.z)), 0.0f);
-}
-
-/* theoretical modulo infinity */
-void infinity_operator(float3* point) {
 }
 
 /*                                       */
 /*-------- a p p l i c a t i o n --------*/
 /*                                       */
 
-void print_help() {
+static inline void print_help() {
 	printf("%s\n", "          _____  __ __  __  __  ___    ____       ");
 	printf("%s\n", "         / ___/ / //_/ / / / / / _ )  / __/       ");
 	printf("%s\n", "        / /__  /  <   / /_/ / / _  | / _/         ");
 	printf("%s\n", "       /____/ /_//_/ /_____/ /____/ /___/         ");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	printf("%s\n", "                    by soybin                     ");
+	printf("%s\n", "        | press space to pause rendering |        ");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	printf("%s\n", "    flag [arg]  |  what is it  |  defaul value    ");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -210,17 +193,19 @@ int main(int argc, char *argv[]) {
 	unsigned int fov = 60;
 	unsigned int max_step = 32;
 	float min_dist = 1e-3;
-	float y_scaling_factor = 2.0f;
+	float y_stretch_factor = 2.0f;
 	/* scene */
-	int geometry_rotation_x = int_random_range(1, 5);
-	int geometry_rotation_y = int_random_range(1, 5);
-	int geometry_rotation_z = int_random_range(1, 5);
+	int geometry_rotation_x = -1;
+	int geometry_rotation_y = -1;
+	int geometry_rotation_z = -1;
 	int color_one = 1; /* red */
 	int color_two = 2; /* green */
 	int color_three = 4; /* blue */
 	int color_background = 0;
 	float geometry_repetition_x = 0.0f;
 	float geometry_repetition_y = 0.0f;
+	float half_geometry_repetition_x = 0.0f;
+	float half_geometry_repetition_y = 0.0f;
 	float camera_distance = 4.0f;
 	float camera_movement_x = 0.0f;
 	float camera_movement_y = 0.0f;
@@ -237,14 +222,24 @@ int main(int argc, char *argv[]) {
 			case 'r': /* random assignment */
 				fov = int_random_range(45, 60);
 				if (int_random_range(0, 1)) {
-					geometry_repetition_x = float_random_range(4.0f, 6.0f);
+					geometry_repetition_x = float_random_range(3.0f, 6.0f);
+					half_geometry_repetition_x = geometry_repetition_x / 2.0f;
 					camera_movement_x = float_random_range(-0.1f, 0.1f);
 				}
 				if (int_random_range(0, 1)) {
-					geometry_repetition_y = float_random_range(4.0f, 6.0f);
+					geometry_repetition_y = float_random_range(3.0f, 6.0f);
+					half_geometry_repetition_y = geometry_repetition_y / 2.0f;
 					camera_movement_y = float_random_range(-0.1f, 0.1f);
 				}
-				camera_distance = float_random_range(4.0f, 6.0f);
+				camera_distance = float_random_range(4.0f, 5.0f);
+				color_one = int_random_range(1, 7);
+				for (int i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 6)){
+					color_two = i;
+				}
+				for (int i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7)){
+					color_three = i;
+				}
+				color_background = 0;
 				break;
 			case 'c': /* color pallette */
 				/*
@@ -257,7 +252,7 @@ int main(int argc, char *argv[]) {
 				 * COLOR_CYAN    6
 				 * COLOR_WHITE   7
 				 */
-				switch (atoi(argv[++i]) % 4) {
+				switch (atoi(argv[++i]) % 5) {
 					case 1:
 						color_one = 3;
 						color_two = 5;
@@ -275,13 +270,18 @@ int main(int argc, char *argv[]) {
 						color_two = 5;
 						color_three = 6;
 						break;
+					case 4:
+						color_one = 7;
+						color_two = 7;
+						color_three = 7;
+						color_background = 0;
 				}
 				break;
 			case 'd':
 				++i;
-				drawing_glyphs[0] = argv[i][0];
+				drawing_glyphs[0] = argv[i][2];
 				drawing_glyphs[1] = argv[i][1];
-				drawing_glyphs[2] = argv[i][2];
+				drawing_glyphs[2] = argv[i][0];
 				break;
 			case 'h':
 				print_help();
@@ -289,9 +289,11 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'H':
 				geometry_repetition_x = atof(argv[++i]);
+				half_geometry_repetition_x = geometry_repetition_x / 2.0f;
 				break;
 			case 'V':
 				geometry_repetition_y = atof(argv[++i]);
+				half_geometry_repetition_y = geometry_repetition_y / 2.0f;
 				break;
 			case 'm':
 				camera_movement_x = atof(argv[++i]);
@@ -315,7 +317,7 @@ int main(int argc, char *argv[]) {
 				fov = atoi(argv[++i]);
 				break;
 			case 's':
-				y_scaling_factor = (float)atof(argv[++i]);
+				y_stretch_factor = (float)atof(argv[++i]);
 				break;
 			case 'S':
 				max_step = atoi(argv[++i]);
@@ -329,6 +331,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* assign rotations if not provided by the user */
+	if (geometry_rotation_x < 0 && geometry_rotation_y < 0 && geometry_rotation_z < 0) {
+		geometry_rotation_x = int_random_range(0, 5);
+		geometry_rotation_y = int_random_range(0, 5);
+		geometry_rotation_z = int_random_range(0, 5);
+	}
+
 	/*---- i n i t ----*/
 
 	/* init ncurses */
@@ -339,7 +348,7 @@ int main(int argc, char *argv[]) {
 
 	/* check if terminal supports color */
 	if (!has_colors()) {
-		printf("%s\n", "[-] Your terminal doesn't support colors. Exiting Program");
+		printf("%s\n", "[-] Your terminal doesn't support colors. Exiting ckube");
 		return 1;
 	}
 
@@ -391,10 +400,6 @@ int main(int argc, char *argv[]) {
 		cos_z[i] = cos(rotation_z);
 	}
 
-	/* update raymarching global vars */
-	GEOMETRY_REPETITION = (float3){ geometry_repetition_x, geometry_repetition_y, 0.0f };
-	HALF_GEOMETRY_REPETITION = float3_divf(GEOMETRY_REPETITION, 2.0f);
-
 	/* configure colors */
 	start_color();
 	init_pair(1, color_one, color_background);
@@ -439,7 +444,7 @@ int main(int argc, char *argv[]) {
 			for (int r = 0; r < rows; ++r) {
 				for (int c = 0; c < cols; ++c) {
 					float3 dir;
-					dir.y = (float)r * y_scaling_factor + 0.5f - rows * y_scaling_factor / 2.0f;
+					dir.y = (float)r * y_stretch_factor + 0.5f - rows * y_stretch_factor / 2.0f;
 					dir.x = (float)c + 0.5f - cols / 2.0f;
 					dir.z = -(float)rows / tan(fov * M_PI / 180.0f / 2.0f);
 					dir = float3_normalize(dir);
@@ -474,8 +479,9 @@ int main(int argc, char *argv[]) {
 					cos_y[pos_y] * cos_x[pos_x] }
 			};
 
-			int previous_normal_index = 1;
+			int previous_normal_index = 0;
 			for (int r = 0; r < rows; ++r) {
+				previous_normal_index = 0;
 				for (int c = 0; c < cols; ++c) {
 					/* get pixel ray direction */
 					float3 dir = *(direction_matrix + r * cols + c);
@@ -485,8 +491,13 @@ int main(int argc, char *argv[]) {
 					for (float total_dist = 0.0f; step < max_step; ++step) {
 						/* compute intersection */
 						point = float3_add(ori, float3_multf(dir, total_dist));
-						/* apply infinity */
-						point = float3_sub(float3_mod(float3_add(point, HALF_GEOMETRY_REPETITION), GEOMETRY_REPETITION), HALF_GEOMETRY_REPETITION);
+						/* apply infinity using modulo */
+						point.x += half_geometry_repetition_x;
+						point.y += half_geometry_repetition_y;
+						point.x = float_mod(point.x, geometry_repetition_x);
+						point.y = float_mod(point.y, geometry_repetition_y);
+						point.x -= half_geometry_repetition_x;
+						point.y -= half_geometry_repetition_y;
 						/* apply rotation */
 						point = float3_mult_mat3_3(point, general_rotation_matrix);
 						/* get distance */
@@ -518,13 +529,14 @@ int main(int argc, char *argv[]) {
 									)
 								);
 						int normal_index = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
-						if (normal_index == 0) {
-							normal_index = previous_normal_index;
-						} else {
+						if (normal_index) {
+							attron(COLOR_PAIR(normal_index));
+							draw[0] = (wchar_t)drawing_glyphs[normal_index - 1];	
 							previous_normal_index = normal_index;
+						} else if (previous_normal_index){
+							attron(COLOR_PAIR(previous_normal_index));
+							draw[0] = (wchar_t)drawing_glyphs[previous_normal_index - 1];	
 						}
-						attron(COLOR_PAIR(normal_index));
-						draw[0] = (wchar_t)drawing_glyphs[normal_index - 1];	
 					}
 					mvaddwstr(r, c, draw);
 				}
@@ -535,7 +547,7 @@ int main(int argc, char *argv[]) {
 		/*---- f p s    l i m i t ----*/
 
 		long double delta_time = (long double)(clock() - previous_time) / CLOCKS_PER_SEC;
-		int time_remaining = (time_per_frame - delta_time) * 1e6;
+		long int time_remaining = (time_per_frame - delta_time) * 1e6;
 		if (time_remaining > 0) {
 			usleep(time_remaining);
 		}
