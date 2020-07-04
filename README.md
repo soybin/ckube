@@ -1,8 +1,11 @@
 # ckube
 **_raymarch cubes on your unix terminal_**
 
-![simple](gifs/01.gif)  
+![01](gifs/01.gif | width=200)  
 *`ckube`*
+
+![02](gifs/02.gif)
+*`ckube -H 4.0 -m 0.1`*
 
 ### install
 *ncurses is required on your system. your terminal should support colors.*
