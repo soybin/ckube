@@ -1,7 +1,7 @@
 # ckube
 **_raymarch cubes on your unix terminal_**
 
-![](gifs/01.gif)  
+![](gifs/01.gif) ![](gifs/04.gif)
 *`ckube`*
 
 ![](gifs/02.gif)

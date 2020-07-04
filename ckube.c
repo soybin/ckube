@@ -224,7 +224,7 @@ int main(int argc, char* argv[]) {
 		}
 		switch (argv[i][1]) {
 			case 'r': /* random assignment */
-				fov = int_random_range(45, 60);
+				fov = int_random_range(40, 60);
 				if (int_random_range(0, 1)) {
 					geometry_repetition_x = float_random_range(4.0f, 6.0f);
 					half_geometry_repetition_x = geometry_repetition_x / 2.0f;
@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
 					half_geometry_repetition_y = geometry_repetition_y / 2.0f;
 					camera_movement_y = float_random_range(-0.1f, 0.1f);
 				}
-				camera_distance = float_random_range(4.0f, 5.0f);
+				camera_distance = float_random_range(4.0f, 8.0f);
 				color_one = int_random_range(1, 7);
 				int i;
 				for (i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 7));
