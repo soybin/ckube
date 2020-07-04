@@ -237,12 +237,11 @@ int main(int argc, char* argv[]) {
 				}
 				camera_distance = float_random_range(4.0f, 5.0f);
 				color_one = int_random_range(1, 7);
-				for (int i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 6)) {
-					color_two = i;
-				}
-				for (int i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7)) {
-					color_three = i;
-				}
+				int i;
+				for (i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 7));
+				color_two = i;
+				for (i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7));
+				color_three = i;
 				color_background = 0;
 				break;
 			case 'c': /* color pallette */
