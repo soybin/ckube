@@ -8,7 +8,8 @@
 *`ckube -H 4.0 -m 0.1`*
 
 ### install
-*ncurses is required on your system. your terminal should support colors.*
+*__ncurses is required on your system. 
+your terminal must support colors.__*
 ```
 git clone https://github.com/soybin/ckube
 cd ckube
