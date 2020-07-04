@@ -162,13 +162,13 @@ void print_help() {
 	printf("%s\n", "-V [float] -> vertical separation        ->    0.0");
 	printf("%s\n", "-m [float] -> move camera horizontally   ->    0.0");
 	printf("%s\n", "-M [float] -> move camera vertically     ->    0.0");
-	printf("%s\n", "-C [float] -> camera distance in z axis  ->    4.0");
+	printf("%s\n", "-C [float] -> camera distance in z axis  ->    6.0");
 	printf("%s\n", "-P [int]   -> pitch in degrees per frame -> random");
 	printf("%s\n", "-Y [int]   -> yaw in degrees per frame   -> random");
 	printf("%s\n", "-R [int]   -> roll in degrees per frame  -> random");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	printf("%s\n", "-f [int]   -> frames per second          ->     20");
-	printf("%s\n", "-F [int]   -> field of view              ->     60");
+	printf("%s\n", "-F [int]   -> field of view              ->     40");
 	printf("%s\n", "-s [float] -> vertical stretch           ->    2.0");
 	printf("%s\n", "-S [int]   -> raymarching max steps      ->     32");
 	printf("%s\n", "-D [float] -> intersection distance      ->   1e-3");
@@ -193,7 +193,7 @@ int main(int argc, char* argv[]) {
 	unsigned int frame_count = 0;
 	/* renderer */
 	unsigned int fps = 20;
-	unsigned int fov = 60;
+	unsigned int fov = 40;
 	unsigned int max_step = 32;
 	float min_dist = 1e-3;
 	float y_stretch_factor = 2.0f;
@@ -209,7 +209,7 @@ int main(int argc, char* argv[]) {
 	float geometry_repetition_y = 0.0f;
 	float half_geometry_repetition_x = 0.0f;
 	float half_geometry_repetition_y = 0.0f;
-	float camera_distance = 4.0f;
+	float camera_distance = 6.0f;
 	float camera_movement_x = 0.0f;
 	float camera_movement_y = 0.0f;
 	wchar_t drawing_glyphs[3] = { L'█', L'█', L'█' };
