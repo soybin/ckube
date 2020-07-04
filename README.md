@@ -1,9 +1,16 @@
 # ckube
 **_raymarch cubes on your unix terminal_**
 
-![simple](gifs/simple03.gif)
-*ckube -H 5 -F 40 -C 6.0 -m 0.1*
+![^](gifs/01.gif)
+*`ckube`*
 
+### install
+*ncurses is required on your system. your terminal should support colors.*
+```
+git clone https://github.com/soybin/ckube
+cd ckube
+make install
+```
 
 ### usage
 you can combine different commands to accomplish very different results. here is a list of the currently available commands, the argument they expect, what they do, and their default value in case they're not set:
