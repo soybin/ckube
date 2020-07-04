@@ -294,11 +294,8 @@ int main(int argc, char* argv[]) {
 				return 1;
 				break;
 			case 'H':
-				puts("fuck");
 				geometry_repetition_x = atof(argv[++i]);
-				puts("fuck");
 				half_geometry_repetition_x = geometry_repetition_x / 2.0f;
-				puts("fuck");
 				break;
 			case 'V':
 				geometry_repetition_y = atof(argv[++i]);
