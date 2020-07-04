@@ -237,11 +237,11 @@ int main(int argc, char* argv[]) {
 				}
 				camera_distance = float_random_range(4.0f, 8.0f);
 				color_one = int_random_range(1, 7);
-				int i;
-				for (i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 7));
-				color_two = i;
-				for (i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7));
-				color_three = i;
+				int j;
+				for (j = int_random_range(1, 7); j == color_one; j = int_random_range(1, 7));
+				color_two = j;
+				for (j = int_random_range(1, 7); j == color_one || j == color_two; j = int_random_range(1, 7));
+				color_three = j;
 				color_background = 0;
 				break;
 			case 'c': /* color pallette */
@@ -294,8 +294,11 @@ int main(int argc, char* argv[]) {
 				return 1;
 				break;
 			case 'H':
+				puts("fuck");
 				geometry_repetition_x = atof(argv[++i]);
+				puts("fuck");
 				half_geometry_repetition_x = geometry_repetition_x / 2.0f;
+				puts("fuck");
 				break;
 			case 'V':
 				geometry_repetition_y = atof(argv[++i]);
