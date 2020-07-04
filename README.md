@@ -1,7 +1,7 @@
 # ckube
 **_raymarch cubes on your unix terminal_**
 
-![^](gifs/01.gif)
+![simple](gifs/01.gif)
 *`ckube`*
 
 ### install
