@@ -1,5 +1,5 @@
 # ckube
-**_raymarch cubes on your unix terminal_**  
+**_raymarch cubes in your unix terminal_**  
 <img src="gifs/06.gif" width="32%"/>
 <img src="gifs/05.gif" width="32%"/>
 <img src="gifs/07.gif" width="32%"/>
