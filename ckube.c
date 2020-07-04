@@ -141,7 +141,7 @@ static inline float de_cube(float3 point) {
 /*-------- a p p l i c a t i o n --------*/
 /*                                       */
 
-static inline void print_help() {
+void print_help() {
 	printf("%s\n", "          _____  __ __  __  __  ___    ____       ");
 	printf("%s\n", "         / ___/ / //_/ / / / / / _ )  / __/       ");
 	printf("%s\n", "        / /__  /  <   / /_/ / / _  | / _/         ");
@@ -153,26 +153,29 @@ static inline void print_help() {
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	printf("%s\n", "-r         -> random settings            ->  false");
 	printf("%s\n", "-c [int]   -> color pallette (0 - 4)     ->      0");
-	printf("%s\n", "-d [str]   -> drawing characters (3)     ->    ░▓█");
+	printf("%s\n", "-1 [int]   -> first unicode render char  ->█(9608)");
+	printf("%s\n", "-2 [int]   -> second unicode render char ->█(9608)");
+	printf("%s\n", "-3 [int]   -> third unicode render char  ->█(9608)");
 	printf("%s\n", "-h         -> print this menu            ->  false");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-	printf("%s\n", "-H [float] -> horizontal separation      ->      0");
-	printf("%s\n", "-V [float] -> vertical separation        ->      0");
-	printf("%s\n", "-m [float] -> move camera horizontally   ->      0");
-	printf("%s\n", "-M [float] -> move camera vertically     ->      0");
+	printf("%s\n", "-H [float] -> horizontal separation      ->    0.0");
+	printf("%s\n", "-V [float] -> vertical separation        ->    0.0");
+	printf("%s\n", "-m [float] -> move camera horizontally   ->    0.0");
+	printf("%s\n", "-M [float] -> move camera vertically     ->    0.0");
+	printf("%s\n", "-C [float] -> camera distance in z axis  ->    4.0");
 	printf("%s\n", "-P [int]   -> pitch in degrees per frame -> random");
 	printf("%s\n", "-Y [int]   -> yaw in degrees per frame   -> random");
 	printf("%s\n", "-R [int]   -> roll in degrees per frame  -> random");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 	printf("%s\n", "-f [int]   -> frames per second          ->     20");
-	printf("%s\n", "-F [int]   -> field of view              ->     20");
+	printf("%s\n", "-F [int]   -> field of view              ->     60");
 	printf("%s\n", "-s [float] -> vertical stretch           ->    2.0");
-	printf("%s\n", "-S [int]   -> raymarching max steps      ->     24");
+	printf("%s\n", "-S [int]   -> raymarching max steps      ->     32");
 	printf("%s\n", "-D [float] -> intersection distance      ->   1e-3");
 	printf("%s\n", "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
 	/* allow utf-8 */
 	setlocale(LC_ALL, "");
@@ -209,12 +212,13 @@ int main(int argc, char *argv[]) {
 	float camera_distance = 4.0f;
 	float camera_movement_x = 0.0f;
 	float camera_movement_y = 0.0f;
-	wchar_t drawing_glyphs[3] = { L'░', L'▓', L'█' };
+	wchar_t drawing_glyphs[3] = { L'█', L'█', L'█' };
 
 	/*---- a r g u m e n t s ----*/
 
 	for (int i = 1; i < argc; ++i) {
 		if (argv[i][0] != '-' || strlen(argv[i]) != 2) {
+			printf("%s\n", "[-] Invalid argument. Printing argument list.");
 			print_help();
 			return 1;
 		}
@@ -222,21 +226,21 @@ int main(int argc, char *argv[]) {
 			case 'r': /* random assignment */
 				fov = int_random_range(45, 60);
 				if (int_random_range(0, 1)) {
-					geometry_repetition_x = float_random_range(3.0f, 6.0f);
+					geometry_repetition_x = float_random_range(4.0f, 6.0f);
 					half_geometry_repetition_x = geometry_repetition_x / 2.0f;
 					camera_movement_x = float_random_range(-0.1f, 0.1f);
 				}
 				if (int_random_range(0, 1)) {
-					geometry_repetition_y = float_random_range(3.0f, 6.0f);
+					geometry_repetition_y = float_random_range(4.0f, 6.0f);
 					half_geometry_repetition_y = geometry_repetition_y / 2.0f;
 					camera_movement_y = float_random_range(-0.1f, 0.1f);
 				}
 				camera_distance = float_random_range(4.0f, 5.0f);
 				color_one = int_random_range(1, 7);
-				for (int i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 6)){
+				for (int i = int_random_range(1, 7); i == color_one; i = int_random_range(1, 6)) {
 					color_two = i;
 				}
-				for (int i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7)){
+				for (int i = int_random_range(1, 7); i == color_one || i == color_two; i = int_random_range(1, 7)) {
 					color_three = i;
 				}
 				color_background = 0;
@@ -277,11 +281,14 @@ int main(int argc, char *argv[]) {
 						color_background = 0;
 				}
 				break;
-			case 'd':
-				++i;
-				drawing_glyphs[0] = argv[i][2];
-				drawing_glyphs[1] = argv[i][1];
-				drawing_glyphs[2] = argv[i][0];
+			case '1':
+				drawing_glyphs[0] = (wchar_t)atof(argv[++i]);
+				break;
+			case '2':
+				drawing_glyphs[1] = (wchar_t)atoi(argv[++i]);
+				break;
+			case '3':
+				drawing_glyphs[2] = (wchar_t)atoi(argv[++i]);
 				break;
 			case 'h':
 				print_help();
@@ -300,6 +307,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'M':
 				camera_movement_y = atof(argv[++i]);
+				break;
+			case 'C':
+				camera_distance = atof(argv[++i]);
 				break;
 			case 'P': /* pitch rotation */
 				geometry_rotation_x = atoi(argv[++i]);
@@ -352,6 +362,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	/* configure colors */
+	start_color();
+	init_pair(1, color_one, color_background);
+	init_pair(2, color_two, color_background);
+	init_pair(3, color_three, color_background);
+
 	/*
 	 * holds the unitary vector direction
 	 * for every pixel in the terminal
@@ -399,12 +415,6 @@ int main(int argc, char *argv[]) {
 		sin_z[i] = sin(rotation_z);
 		cos_z[i] = cos(rotation_z);
 	}
-
-	/* configure colors */
-	start_color();
-	init_pair(1, color_one, color_background);
-	init_pair(2, color_two, color_background);
-	init_pair(3, color_three, color_background);
 
 	/* compute frame duration */
 	float time_per_frame = 1.0f / (float)fps;
@@ -479,9 +489,9 @@ int main(int argc, char *argv[]) {
 					cos_y[pos_y] * cos_x[pos_x] }
 			};
 
-			int previous_normal_index = 0;
+			int previous_normal_id = 0;
 			for (int r = 0; r < rows; ++r) {
-				previous_normal_index = 0;
+				previous_normal_id = 0;
 				for (int c = 0; c < cols; ++c) {
 					/* get pixel ray direction */
 					float3 dir = *(direction_matrix + r * cols + c);
@@ -510,7 +520,9 @@ int main(int argc, char *argv[]) {
 					/* in case object was hit, draw */
 					wchar_t draw[1] = L" ";
 					if (step < max_step) {
+
 						/*---- n o r m a l ----*/
+
 						const float h = 1e-4;
 						const float3 xyy = { 1.0f, -1.0f, -1.0f };
 						const float3 yyx = { -1.0f, -1.0f, 1.0f };
@@ -528,16 +540,18 @@ int main(int argc, char *argv[]) {
 										)
 									)
 								);
-						int normal_index = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
-						if (normal_index) {
-							attron(COLOR_PAIR(normal_index));
-							draw[0] = (wchar_t)drawing_glyphs[normal_index - 1];	
-							previous_normal_index = normal_index;
-						} else if (previous_normal_index){
-							attron(COLOR_PAIR(previous_normal_index));
-							draw[0] = (wchar_t)drawing_glyphs[previous_normal_index - 1];	
+						/* get normal id */
+						int normal_id = abs((int)normal.x) * 1 + abs((int)normal.y) * 2 + abs((int)normal.z) * 3;
+						if (normal_id) {
+							attron(COLOR_PAIR(normal_id));
+							draw[0] = (wchar_t)drawing_glyphs[normal_id - 1];	
+							previous_normal_id = normal_id;
+						} else if (previous_normal_id){
+							attron(COLOR_PAIR(previous_normal_id));
+							draw[0] = (wchar_t)drawing_glyphs[previous_normal_id - 1];	
 						}
 					}
+					/* draw character to screen matrix */
 					mvaddwstr(r, c, draw);
 				}
 			}
