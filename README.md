@@ -1,7 +1,8 @@
 # ckube
-**_raymarch cubes on your unix terminal_**
-
-![](gifs/05.gif) ![](gifs/06.gif) ![](gifs/07.gif)
+**_raymarch cubes on your unix terminal_**  
+<img src="gifs/06.gif" width="32%"/>
+<img src="gifs/05.gif" width="32%"/>
+<img src="gifs/07.gif" width="32%"/>
 *`ckube -V 5.0 -M 0.1 -C 8.0`*
 
 ![](gifs/02.gif)
