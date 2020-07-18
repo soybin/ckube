@@ -2,7 +2,6 @@ PREFIX = /usr/local
 
 ckube: ckube.c
 	$(CC) ckube.c -o ckube -w -lm -lncursesw -std=c99
-	./ckube
 
 .PHONY: install
 install: ckube
